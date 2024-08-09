@@ -1,0 +1,349 @@
+using Oracle.ManagedDataAccess.Client;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace Prototype01
+{
+    public partial class Form4 : Form
+    {
+        private Form1 _parentForm;
+
+        public Form4(Form1 parentForm)
+        {
+            //InitializeComponent();
+            //_parentForm = parentForm ?? throw new ArgumentNullException(nameof(parentForm), "Form1 instance cannot be null"); // 성공 1차코드
+
+            InitializeComponent();
+
+            if (parentForm == null)
+            {
+                throw new ArgumentNullException(nameof(parentForm), "Form1 instance cannot be null");
+            }
+
+            _parentForm = parentForm;           //새로 추가한 코드
+        }
+
+        private void Form4_Load(object sender, EventArgs e)
+        {
+            // 데이터 로드
+            LoadData();
+        }
+        public Form4()
+        {
+            InitializeComponent();
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            if (_parentForm == null)
+            {
+                MessageBox.Show("Parent form is not available.");
+                return;
+            }
+
+            string pname = _parentForm.ProductName;
+            int quantity = _parentForm.ProductEa;
+
+            if (string.IsNullOrEmpty(pname))
+            {
+                MessageBox.Show("Product name is not set.");
+                return;
+            }
+
+
+            // Calculate SALESPRICE based on PPRICE and SALESQUANTITY
+            UpdateSalesQuantityAndPrice(pname, quantity);                  //새로 추가 코드
+
+
+            //// Null check to ensure _parentForm is not null
+            //if (_parentForm == null)
+            //{
+            //    MessageBox.Show("Parent form is not available.");
+            //    return;
+            //}
+
+
+            //// Form1에서 제품 이름과 수량을 가져옴
+            //string pname = _parentForm.ProductName;
+            //int cost = _parentForm.ProductEa;
+
+            //// Check if pname is not null or empty
+            //if (string.IsNullOrEmpty(pname))
+            //{
+            //    MessageBox.Show("Product name is not set.");
+            //    return;
+            //}
+            //// Oracle 데이터베이스에 연결하여 업데이트 수행
+            //UpdateSalesQuantity(pname, cost);                     //성공 1차 코드
+        }
+        //private void UpdateSalesQuantityAndPrice(string pname, int quantity)
+        //{
+        //string connectionString = "Data Source=(DESCRIPTION=" +
+        //    "(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)" +
+        //    "(HOST=localhost)(PORT=9000)))" +
+        //    "(CONNECT_DATA=(SERVER=DEDICATED)" +
+        //    "(SERVICE_NAME=xe)));" +
+        //    "User Id=SCOTT2;Password=TIGER;";
+
+        //using (OracleConnection conn = new OracleConnection(connectionString))
+        //{
+        //    try
+        //    {
+        //        conn.Open();
+
+        //        // Step 1: Get the current SalesQuantity and PPrice
+        //        decimal currentSalesQuantity = 0;
+        //        decimal pprice = 0;
+
+        //        using (OracleCommand cmd = new OracleCommand("SELECT SalesQuantity, PPrice FROM PRODUCT_SALE WHERE PName = :pname", conn))
+        //        {
+        //            cmd.Parameters.Add(new OracleParameter("pname", pname));
+        //            using (OracleDataReader reader = cmd.ExecuteReader())
+        //            {
+        //                if (reader.Read())
+        //                {
+        //                    currentSalesQuantity = reader.GetDecimal(0);
+        //                    pprice = reader.GetDecimal(1);
+        //                }
+        //                else
+        //                {
+        //                    MessageBox.Show("Product not found.");
+        //                    return;
+        //                }
+        //            }
+        //        }
+
+        //        // Calculate new SalesQuantity and SalesPrice
+        //        decimal newSalesQuantity = currentSalesQuantity + quantity;
+        //        decimal salesPrice = pprice * newSalesQuantity;
+
+        //        // Step 2: Update SalesQuantity and SalesPrice
+        //        string updateQuery = "UPDATE PRODUCT_SALE SET SalesQuantity = :newQuantity, SalesPrice = :salesPrice WHERE PName = :pname";
+
+        //        using (OracleCommand cmd = new OracleCommand(updateQuery, conn))
+        //        {
+        //            cmd.Parameters.Add(new OracleParameter("newQuantity", newSalesQuantity));
+        //            cmd.Parameters.Add(new OracleParameter("salesPrice", salesPrice));
+        //            cmd.Parameters.Add(new OracleParameter("pname", pname));
+
+        //            int rowsUpdated = cmd.ExecuteNonQuery();
+
+        //            if (rowsUpdated > 0)
+        //            {
+        //                MessageBox.Show("SalesQuantity and SalesPrice updated successfully.");
+        //            }
+        //            else
+        //            {
+        //                MessageBox.Show("Product not found.");
+        //            }
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        MessageBox.Show("Error: " + ex.Message);
+        //    }
+        //}                                                                                      //성공 2차코드
+        //}
+
+
+        private void UpdateSalesQuantityAndPrice(string pname, int quantity)
+        {
+            string connectionString = "Data Source=(DESCRIPTION=" +
+                "(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)" +
+                "(HOST=localhost)(PORT=9000)))" +
+                "(CONNECT_DATA=(SERVER=DEDICATED)" +
+                "(SERVICE_NAME=xe)));" +
+                "User Id=SCOTT2;Password=TIGER;";
+
+            using (OracleConnection conn = new OracleConnection(connectionString))
+            {
+                try
+                {
+                    conn.Open();
+
+                    // Step 1: Get the current SalesQuantity and PPrice
+                    decimal currentSalesQuantity = 0;
+                    decimal pprice = 0;
+
+                    using (OracleCommand cmd = new OracleCommand("SELECT SalesQuantity, PPrice FROM PRODUCT_SALE WHERE PName = :pname", conn))
+                    {
+                        cmd.Parameters.Add(new OracleParameter("pname", pname));
+                        using (OracleDataReader reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                currentSalesQuantity = reader.GetDecimal(0);
+                                pprice = reader.GetDecimal(1);
+                            }
+                            else
+                            {
+                                MessageBox.Show("Product not found.");
+                                return;
+                            }
+                        }
+                    }
+
+                    // Calculate new SalesQuantity and SalesPrice
+                    decimal newSalesQuantity = currentSalesQuantity + quantity;
+                    decimal salesPrice = pprice * newSalesQuantity;
+
+                    // Step 2: Update SalesQuantity and SalesPrice
+                    string updateQuery = "UPDATE PRODUCT_SALE SET SalesQuantity = :newQuantity, SalesPrice = :salesPrice WHERE PName = :pname";
+
+                    using (OracleCommand cmd = new OracleCommand(updateQuery, conn))
+                    {
+                        cmd.Parameters.Add(new OracleParameter("newQuantity", newSalesQuantity));
+                        cmd.Parameters.Add(new OracleParameter("salesPrice", salesPrice));
+                        cmd.Parameters.Add(new OracleParameter("pname", pname));
+
+                        int rowsUpdated = cmd.ExecuteNonQuery();
+
+                        if (rowsUpdated > 0)
+                        {
+                            MessageBox.Show("SalesQuantity and SalesPrice updated successfully.");
+                            LoadData(); // 데이터 갱신 후 다시 로드
+                        }
+                        else
+                        {
+                            MessageBox.Show("Product not found.");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Error: " + ex.Message);
+                }
+            }
+        }
+        private void LoadData()
+        {
+            string connectionString = "Data Source=(DESCRIPTION=" +
+                "(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)" +
+                "(HOST=localhost)(PORT=9000)))" +
+                "(CONNECT_DATA=(SERVER=DEDICATED)" +
+                "(SERVICE_NAME=xe)));" +
+                "User Id=SCOTT2;Password=TIGER;";
+
+            using (OracleConnection conn = new OracleConnection(connectionString))
+            {
+                try
+                {
+                    conn.Open();
+
+                    string query = "SELECT PCode, PName, PPrice, SalesQuantity, SalesPrice FROM PRODUCT_SALE";
+
+                    using (OracleDataAdapter adapter = new OracleDataAdapter(query, conn))
+                    {
+                        DataTable dataTable = new DataTable();
+                        adapter.Fill(dataTable);
+
+                        // Bind the data to DataGridView
+                        dataGridView1.DataSource = dataTable;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Error loading data: " + ex.Message);
+                }
+            }
+        }
+
+        private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+
+        }
+
+        //    private void UpdateSalesQuantity(string pname, int cost)
+        //{
+        //    // Oracle 연결 문자열 설정
+        //    string connectionString = "Data Source=(DESCRIPTION=" +
+        //        "(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)" +
+        //        "(HOST=localhost)(PORT=9000)))" +
+        //        "(CONNECT_DATA=(SERVER=DEDICATED)" +
+        //        "(SERVICE_NAME=xe)));" +
+        //        "User Id=SCOTT2;Password=TIGER;";
+
+        //    using (OracleConnection conn = new OracleConnection(connectionString))
+        //    {
+        //        try
+        //        {
+        //            conn.Open();
+
+        //            // SQL 쿼리 작성
+        //            string query = "UPDATE PRODUCT_SALE SET SALESQUANTITY = SALESQUANTITY + :cost WHERE PName = :pname";
+
+        //            using (OracleCommand cmd = new OracleCommand(query, conn))
+        //            {
+        //                // 매개변수 추가
+        //                cmd.Parameters.Add(new OracleParameter("cost", cost));
+        //                cmd.Parameters.Add(new OracleParameter("pname", pname));
+
+        //                // 쿼리 실행
+        //                int rowsUpdated = cmd.ExecuteNonQuery();
+
+        //                if (rowsUpdated > 0)
+        //                {
+        //                    MessageBox.Show("SALESQUANTITY updated successfully.");
+        //                }
+        //                else
+        //                {
+        //                    MessageBox.Show("Product not found.");
+        //                }
+        //            }
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            MessageBox.Show("Error: " + ex.Message);
+        //        }
+        //    }
+        //}                                                                              //성공1차코드
+
+
+
+        //string strConn = "Data Source=(DESCRIPTION=" +
+        //       "(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)" +
+        //       "(HOST=localhost)(PORT=9000)))" +
+        //       "(CONNECT_DATA=(SERVER=DEDICATED)" +
+        //       "(SERVICE_NAME=xe)));" +
+        //       "User Id=SCOTT2;Password=TIGER;";
+        //    //1.연결 객체 만들기 - Client
+        //    OracleConnection conn = new OracleConnection(strConn);
+
+        //    //2.데이터베이스 접속을 위한 연결
+        //    conn.Open();
+
+        //    OracleCommand cmd = conn.CreateCommand();
+        //    cmd.Connection = conn;
+
+        //    cmd.CommandText = "SELECT * FROM PRODUCT_SALE ";
+        //    cmd.ExecuteNonQuery();
+        //    OracleDataReader reader = cmd.ExecuteReader();
+
+        //    string Pname; int Cost;
+        //    while (reader.Read())
+        //    {
+        //        Cost = int.Parse(reader["SalesQuantity"].ToString());
+        //        Pname = reader["Pname"] as string;
+        //        if (Pname == reader["Pname"])
+        //        {
+
+        //            cmd.CommandText = $"UPDATE PRODUCT_SALE SET SalesQuantity = '{Cost}' WHERE PNAME = '{Pname}'";
+        //            cmd.ExecuteNonQuery();
+        //        }
+        //        else
+        //        {
+        //            MessageBox.Show("다시 한 번 확인해보세요");
+        //        }
+        //    }
+        //    //4. 리소스 반환 및 종료
+        //    conn.Close();
+    }
+}
+
