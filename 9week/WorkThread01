@@ -4,7 +4,7 @@ namespace WorkThread01
 {
     internal class Program
     {
-        //스레드 동기하ㅗ
+        //스레드 동기화
         private static readonly object lockObject = new object();
         static void Main(string[] args)
         {
